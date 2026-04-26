@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BAU Energy to Square Footage Calculator</title>
+  <link rel="stylesheet" href="styles-index.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <h1>Baseline Abode Unit (BAU) Energy-to-Square-Footage Model</h1>
+      <p>
+        This model explores a simple principle: shelter entitlement grows from accumulated productive value over time,
+        but it can never exceed the value contributed into the system. In this prototype, Energy Credits are converted
+        into annual housing capacity using a construction-cost model and a social allocation rule.
+      </p>
+      <p class="note">
+        This version supports household-level modeling and a national scenario mode. It treats Energy Credits as a
+        hybrid unit that can be benchmarked to real energy production, such as electricity, while still functioning
+        as a broader proxy for productive economic and infrastructure output.
+      </p>
+
+      <div>
+        <a href="manifesto.html" class="link-button">Read the Manifesto</a>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="panel">
+        <h2>Inputs</h2>
+        <div class="stack">
+          <div class="panel">
+            <h3>Household Members</h3>
+            <div id="memberList" class="stack"></div>
+            <div class="member-actions">
+              <button id="addMemberBtn" type="button">Add household member</button>
+            </div>
+            <div class="footer-note">
+              Each member contributes Energy Credits based on current age. This allows the household to reflect mixed ages,
+              such as parents, adult children, or other long-term household members.
+            </div>
+          </div>
+
+          <details>
+            <summary>What are Energy Credits?</summary>
+            <p>
+              Energy Credits are a normalized unit of productive value. They may be anchored to real energy production,
+              such as kWh, but in this model they represent a broader share of economic and infrastructure output used
+              to support housing.
+            </p>
+          </details>
+
+          <div class="two-col">
+            <div>
+              <label for="energyBirthTo18">Annual contribution age 0–18 (Energy Credits)</label>
+              <input id="energyBirthTo18" type="number" min="0" step="0.01" value="1000" />
+            </div>
+            <div>
+              <label for="energyAdult">Annual contribution age 18+ (Energy Credits)</label>
+              <input id="energyAdult" type="number" min="0" step="0.01" value="1500" />
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div>
+              <label for="energyUnitLabel">Energy unit label</label>
+              <input id="energyUnitLabel" type="text" value="Energy Credits" />
+            </div>
+            <div>
+              <label for="currencyPeg">Dollar peg per energy unit</label>
+              <input id="currencyPeg" type="number" min="0" step="0.01" value="1" />
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div>
+              <label for="buildCostPerSqFt">Construction cost per sq ft</label>
+              <input id="buildCostPerSqFt" type="number" min="1" step="1" value="180" />
+            </div>
+            <div>
+              <label for="lifeOfStructure">Useful life of structure (years)</label>
+              <input id="lifeOfStructure" type="number" min="1" step="1" value="50" />
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div>
+              <label for="maintenanceRate">Annual maintenance as % of build cost</label>
+              <input id="maintenanceRate" type="number" min="0" step="0.1" value="2" />
+            </div>
+            <div>
+              <label for="allocationRate">Allocation rate to personal housing %</label>
+              <input id="allocationRate" type="number" min="0" max="100" step="1" value="35" />
+            </div>
+          </div>
+
+          <div>
+            <label for="baseGuaranteedSqFt">Guaranteed baseline housing floor (sq ft)</label>
+            <input id="baseGuaranteedSqFt" type="number" min="0" step="1" value="250" />
+          </div>
+
+          <div>
+            <label for="regionPreset">Regional preset</label>
+            <select id="regionPreset">
+              <option value="custom">Custom</option>
+              <option value="us_modest">USA modest build</option>
+              <option value="lower_cost_global">Lower-cost global region</option>
+              <option value="prefab_export">Prefab/export hybrid</option>
+            </select>
+          </div>
+
+          <div class="two-col">
+            <button id="calcBtn" type="button">Calculate</button>
+            <button id="resetBtn" type="button" class="secondary">Reset defaults</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Outputs</h2>
+        <div class="metrics">
+          <div class="metric">
+            <div class="label">Household Energy Credits</div>
+            <div class="value" id="outLifetimeEnergy">0</div>
+          </div>
+          <div class="metric">
+            <div class="label">Housing value allocated</div>
+            <div class="value" id="outHousingEnergy">0</div>
+          </div>
+          <div class="metric">
+            <div class="label">Current household BAU</div>
+            <div class="value" id="outSqFt">0 sq ft</div>
+          </div>
+          <div class="metric">
+            <div class="label">Approx. build value backed</div>
+            <div class="value" id="outBuildValue">$0</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Interpretation</h3>
+          <p id="interpretation"></p>
+        </div>
+
+        <div class="panel">
+          <h3>Household Member Summary</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Age</th>
+                  <th>Lifetime Energy Credits</th>
+                  <th>% of Household Energy</th>
+                </tr>
+              </thead>
+              <tbody id="memberSummaryTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Milestone table</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Age</th>
+                  <th>Hypothetical Household Energy</th>
+                  <th>Housing Allocation</th>
+                  <th>Household BAU Sq Ft</th>
+                </tr>
+              </thead>
+              <tbody id="milestoneTable"></tbody>
+            </table>
+          </div>
+          <div class="footer-note">
+            This milestone table uses the current household size and asks: if every member were at the same listed age,
+            what would the household support look like?
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>BAU Tier Requirements</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tier</th>
+                  <th>Target Sq Ft</th>
+                  <th>Annual Backing Needed</th>
+                  <th>Total Energy Needed</th>
+                  <th>Sq Ft Per Member</th>
+                </tr>
+              </thead>
+              <tbody id="tierTable"></tbody>
+            </table>
+          </div>
+          <div class="footer-note">
+            This shows total household requirements for each tier, along with a simple equal-share square footage per member.
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Household Member Allocation by Tier</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Energy Share %</th>
+                  <th>Survival Share</th>
+                  <th>Standard Share</th>
+                  <th>Family Share</th>
+                </tr>
+              </thead>
+              <tbody id="memberAllocationTable"></tbody>
+            </table>
+          </div>
+          <div class="footer-note">
+            These shares are proportional, based on each member's contribution to the household's total energy.
+            This is not a legal rule. It is a transparent starting point for discussing fair and understandable household allocation.
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>National Scenario Mode</h2>
+          <p class="footer-note">
+            This mode benchmarks Energy Credits against a national-scale electricity-backed value pool.
+          </p>
+
+          <div class="four-col">
+            <div>
+              <label for="nationalPopulation">National population</label>
+              <input id="nationalPopulation" type="number" min="1" step="1" value="340110988" />
+            </div>
+            <div>
+              <label for="averageHouseholdSize">Average household size</label>
+              <input id="averageHouseholdSize" type="number" min="0.1" step="0.1" value="2.5" />
+            </div>
+            <div>
+              <label for="nationalGenerationMWh">Annual generation (MWh)</label>
+              <input id="nationalGenerationMWh" type="number" min="0" step="1" value="4308634297" />
+            </div>
+            <div>
+              <label for="averageRetailPrice">Average retail price ($/kWh)</label>
+              <input id="averageRetailPrice" type="number" min="0" step="0.0001" value="0.1294" />
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div>
+              <label for="bauAllocationPercent">Percent of national value pool allocated to BAUs</label>
+              <input id="bauAllocationPercent" type="number" min="0" max="100" step="0.1" value="5" />
+            </div>
+            <div class="soft-box">
+              <strong>Mixed-tier distribution</strong>
+              <p>
+                Set the household mix below. The calculator normalizes the percentages if they do not total 100.
+              </p>
+            </div>
+          </div>
+
+          <div class="scenario-grid">
+            <div>
+              <label for="mixSurvival">Survival tier mix %</label>
+              <input id="mixSurvival" type="number" min="0" max="100" step="0.1" value="60" />
+            </div>
+            <div>
+              <label for="mixStandard">Standard tier mix %</label>
+              <input id="mixStandard" type="number" min="0" max="100" step="0.1" value="30" />
+            </div>
+            <div>
+              <label for="mixFamily">Family tier mix %</label>
+              <input id="mixFamily" type="number" min="0" max="100" step="0.1" value="10" />
+            </div>
+          </div>
+
+          <div class="metrics">
+            <div class="metric">
+              <div class="label">National value pool</div>
+              <div class="value" id="outNationalValuePool">$0</div>
+            </div>
+            <div class="metric">
+              <div class="label">BAU allocation pool</div>
+              <div class="value" id="outAllocatedPool">$0</div>
+            </div>
+            <div class="metric">
+              <div class="label">Mixed annual backing / household</div>
+              <div class="value" id="outWeightedBacking">$0</div>
+            </div>
+            <div class="metric">
+              <div class="label">Weighted average BAU size</div>
+              <div class="value" id="outWeightedSqFt">0 sq ft</div>
+            </div>
+          </div>
+
+          <div class="metrics">
+            <div class="metric">
+              <div class="label">Households supported</div>
+              <div class="value" id="outHouseholdsSupported">0</div>
+            </div>
+            <div class="metric">
+              <div class="label">People supported</div>
+              <div class="value" id="outPeopleSupported">0</div>
+            </div>
+            <div class="metric">
+              <div class="label">Household coverage</div>
+              <div class="value" id="outHouseholdCoverage">0%</div>
+            </div>
+            <div class="metric">
+              <div class="label">Implied total households</div>
+              <div class="value" id="outTotalHouseholds">0</div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tier</th>
+                  <th>Mix %</th>
+                  <th>Annual Backing / Household</th>
+                  <th>Households in Mix</th>
+                  <th>People Supported</th>
+                </tr>
+              </thead>
+              <tbody id="nationalScenarioTable"></tbody>
+            </table>
+          </div>
+
+          <div class="footer-note">
+            National Scenario Mode is a planning tool. It estimates how many households and people could be supported if a share
+            of a national energy-backed value pool were dedicated to BAUs.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const defaults = {
+      energyBirthTo18: 1000,
+      energyAdult: 1500,
+      energyUnitLabel: 'Energy Credits',
+      currencyPeg: 1,
+      buildCostPerSqFt: 180,
+      lifeOfStructure: 50,
+      maintenanceRate: 2,
+      allocationRate: 35,
+      baseGuaranteedSqFt: 250,
+      regionPreset: 'custom',
+      nationalPopulation: 340110988,
+      averageHouseholdSize: 2.5,
+      nationalGenerationMWh: 4308634297,
+      averageRetailPrice: 0.1294,
+      bauAllocationPercent: 5,
+      mixSurvival: 60,
+      mixStandard: 30,
+      mixFamily: 10
+    };
+
+    const defaultMembers = [
+      { name: 'Member 1', age: 18 }
+    ];
+
+    const tierDefs = [
+      { name: 'Survival', sqft: 400 },
+      { name: 'Standard', sqft: 1125 },
+      { name: 'Family', sqft: 1800 }
+    ];
+
+    const $ = (id) => document.getElementById(id);
+
+    let householdMembers = JSON.parse(JSON.stringify(defaultMembers));
+
+    function num(id) {
+      return Number($(id).value || 0);
+    }
+
+    function fmtNumber(n, decimals = 0) {
+      return Number(n).toLocaleString(undefined, {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+      });
+    }
+
+    function fmtCurrency(n) {
+      return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 0
+      }).format(n);
+    }
+
+    function fmtPercent(n, decimals = 1) {
+      return `${fmtNumber(n, decimals)}%`;
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function totalEnergyAtAge(age, childAnnual, adultAnnual) {
+      const childYears = Math.min(Math.max(age, 0), 18);
+      const adultYears = Math.max(age - 18, 0);
+      return (childYears * childAnnual) + (adultYears * adultAnnual);
+    }
+
+    function annualBurdenPerSqFt(buildCostPerSqFt, lifeOfStructure, maintenanceRatePct) {
+      const amortized = buildCostPerSqFt / lifeOfStructure;
+      const maintenance = buildCostPerSqFt * (maintenanceRatePct / 100);
+      return amortized + maintenance;
+    }
+
+    function getMemberEnergy(member, params) {
+      return totalEnergyAtAge(member.age, params.energyBirthTo18, params.energyAdult);
+    }
+
+    function getHouseholdEnergy(params) {
+      return householdMembers.reduce((sum, member) => sum + getMemberEnergy(member, params), 0);
+    }
+
+    function getHouseholdCount() {
+      return Math.max(householdMembers.length, 1);
+    }
+
+    function bauSqFtFromTotalEnergy(totalEnergy, params) {
+      const housingEnergy = totalEnergy * (params.allocationRate / 100) * params.currencyPeg;
+      const annualBurden = annualBurdenPerSqFt(
+        params.buildCostPerSqFt,
+        params.lifeOfStructure,
+        params.maintenanceRate
+      );
+      const supportedSqFt = annualBurden > 0 ? housingEnergy / annualBurden : 0;
+
+      return {
+        totalEnergy,
+        housingEnergy,
+        annualBurden,
+        supportedSqFt,
+        totalSqFt: params.baseGuaranteedSqFt + supportedSqFt,
+        buildValueBacked: supportedSqFt * params.buildCostPerSqFt
+      };
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function buildMemberInputs() {
+      const container = $('memberList');
+      container.innerHTML = '';
+
+      householdMembers.forEach((member, index) => {
+        const div = document.createElement('div');
+        div.className = 'member-card';
+
+        div.innerHTML = `
+          <div class="three-col">
+            <div>
+              <label for="member-name-${index}">Name</label>
+              <input id="member-name-${index}" type="text" value="${escapeHtml(member.name)}" />
+            </div>
+            <div>
+              <label for="member-age-${index}">Current age</label>
+              <input id="member-age-${index}" type="number" min="0" max="120" step="1" value="${member.age}" />
+            </div>
+            <div>
+              <button type="button" class="danger" data-remove-index="${index}" ${householdMembers.length === 1 ? 'disabled' : ''}>
+                Remove
+              </button>
+            </div>
+          </div>
+          <div class="member-summary" id="member-summary-${index}"></div>
+        `;
+
+        container.appendChild(div);
+      });
+
+      householdMembers.forEach((member, index) => {
+        $(`member-name-${index}`).addEventListener('input', (e) => {
+          householdMembers[index].name = e.target.value || `Member ${index + 1}`;
+          calculate();
+        });
+
+        $(`member-age-${index}`).addEventListener('input', (e) => {
+          householdMembers[index].age = clamp(Number(e.target.value || 0), 0, 120);
+          calculate();
+        });
+      });
+
+      container.querySelectorAll('[data-remove-index]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const idx = Number(btn.getAttribute('data-remove-index'));
+          removeMember(idx);
+        });
+      });
+    }
+
+    function addMember() {
+      householdMembers.push({
+        name: `Member ${householdMembers.length + 1}`,
+        age: 18
+      });
+      buildMemberInputs();
+      calculate();
+    }
+
+    function removeMember(index) {
+      if (householdMembers.length <= 1) return;
+      householdMembers.splice(index, 1);
+      buildMemberInputs();
+      calculate();
+    }
+
+    function setDefaults() {
+      Object.entries(defaults).forEach(([key, value]) => {
+        if ($(key)) $(key).value = value;
+      });
+
+      householdMembers = JSON.parse(JSON.stringify(defaultMembers));
+      buildMemberInputs();
+      calculate();
+    }
+
+    function applyPreset() {
+      const preset = $('regionPreset').value;
+      if (preset === 'us_modest') {
+        $('buildCostPerSqFt').value = 180;
+        $('lifeOfStructure').value = 50;
+        $('maintenanceRate').value = 2;
+      } else if (preset === 'lower_cost_global') {
+        $('buildCostPerSqFt').value = 65;
+        $('lifeOfStructure').value = 40;
+        $('maintenanceRate').value = 1.5;
+      } else if (preset === 'prefab_export') {
+        $('buildCostPerSqFt').value = 110;
+        $('lifeOfStructure').value = 45;
+        $('maintenanceRate').value = 1.8;
+      }
+      calculate();
+    }
+
+    function getParams() {
+      return {
+        energyBirthTo18: num('energyBirthTo18'),
+        energyAdult: num('energyAdult'),
+        currencyPeg: num('currencyPeg'),
+        buildCostPerSqFt: num('buildCostPerSqFt'),
+        lifeOfStructure: num('lifeOfStructure'),
+        maintenanceRate: num('maintenanceRate'),
+        allocationRate: num('allocationRate'),
+        baseGuaranteedSqFt: num('baseGuaranteedSqFt')
+      };
+    }
+
+    function getTierAnnualBacking(tier, params) {
+      const annualBurden = annualBurdenPerSqFt(
+        params.buildCostPerSqFt,
+        params.lifeOfStructure,
+        params.maintenanceRate
+      );
+      const supportedOnly = Math.max(tier.sqft - params.baseGuaranteedSqFt, 0);
+      return supportedOnly * annualBurden;
+    }
+
+    function buildMemberSummaryTable(params, householdEnergy) {
+      const tbody = $('memberSummaryTable');
+      tbody.innerHTML = '';
+
+      householdMembers.forEach((member, index) => {
+        const energy = getMemberEnergy(member, params);
+        const share = householdEnergy > 0 ? (energy / householdEnergy) * 100 : 0;
+
+        const summaryEl = $(`member-summary-${index}`);
+        if (summaryEl) {
+          summaryEl.textContent = `Estimated lifetime energy: ${fmtNumber(energy)} (${fmtNumber(share, 1)}% of household)`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(member.name)}</td>
+          <td>${fmtNumber(member.age)}</td>
+          <td>${fmtNumber(energy)}</td>
+          <td>${fmtNumber(share, 1)}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function buildTierTable(params) {
+      const tbody = $('tierTable');
+      tbody.innerHTML = '';
+
+      const memberCount = getHouseholdCount();
+
+      tierDefs.forEach((tier) => {
+        const annualBacking = getTierAnnualBacking(tier, params);
+        const energyNeeded = (params.allocationRate > 0 && params.currencyPeg > 0)
+          ? annualBacking / ((params.allocationRate / 100) * params.currencyPeg)
+          : Infinity;
+        const sqftPerMember = tier.sqft / memberCount;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${tier.name}</td>
+          <td>${fmtNumber(tier.sqft)}</td>
+          <td>${fmtCurrency(annualBacking)}</td>
+          <td>${Number.isFinite(energyNeeded) ? fmtNumber(energyNeeded) : 'Not reachable'}</td>
+          <td>${fmtNumber(sqftPerMember, 1)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function buildMemberAllocationTable(params, householdEnergy) {
+      const tbody = $('memberAllocationTable');
+      tbody.innerHTML = '';
+
+      householdMembers.forEach((member) => {
+        const memberEnergy = getMemberEnergy(member, params);
+        const share = householdEnergy > 0 ? memberEnergy / householdEnergy : 0;
+
+        const survivalShare = tierDefs[0].sqft * share;
+        const standardShare = tierDefs[1].sqft * share;
+        const familyShare = tierDefs[2].sqft * share;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(member.name)}</td>
+          <td>${fmtNumber(share * 100, 1)}%</td>
+          <td>${fmtNumber(survivalShare, 1)} sq ft</td>
+          <td>${fmtNumber(standardShare, 1)} sq ft</td>
+          <td>${fmtNumber(familyShare, 1)} sq ft</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function buildMilestones(params) {
+      const milestoneAges = [0, 5, 10, 18, 25, 35, 50, 65, 80];
+      const tbody = $('milestoneTable');
+      tbody.innerHTML = '';
+
+      const memberCount = getHouseholdCount();
+
+      milestoneAges.forEach((age) => {
+        const totalEnergy = memberCount * totalEnergyAtAge(age, params.energyBirthTo18, params.energyAdult);
+        const row = bauSqFtFromTotalEnergy(totalEnergy, params);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${age}</td>
+          <td>${fmtNumber(row.totalEnergy)}</td>
+          <td>${fmtCurrency(row.housingEnergy)}</td>
+          <td>${fmtNumber(row.totalSqFt, 0)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function buildNationalScenario(params) {
+      const population = num('nationalPopulation');
+      const avgHouseholdSize = Math.max(num('averageHouseholdSize'), 0.1);
+      const generationMWh = num('nationalGenerationMWh');
+      const avgRetailPrice = num('averageRetailPrice');
+      const bauAllocationPercent = num('bauAllocationPercent');
+
+      const rawMix = [
+        Math.max(num('mixSurvival'), 0),
+        Math.max(num('mixStandard'), 0),
+        Math.max(num('mixFamily'), 0)
+      ];
+
+      const mixTotal = rawMix.reduce((a, b) => a + b, 0) || 1;
+      const normalizedMix = rawMix.map((v) => v / mixTotal);
+
+      const totalHouseholds = population / avgHouseholdSize;
+      const nationalValuePool = generationMWh * 1000 * avgRetailPrice;
+      const allocatedPool = nationalValuePool * (bauAllocationPercent / 100);
+
+      const tierAnnuals = tierDefs.map((tier) => getTierAnnualBacking(tier, params));
+      const weightedBacking = tierAnnuals.reduce((sum, annual, i) => sum + (annual * normalizedMix[i]), 0);
+      const weightedSqFt = tierDefs.reduce((sum, tier, i) => sum + (tier.sqft * normalizedMix[i]), 0);
+
+      const householdsSupported = weightedBacking > 0 ? allocatedPool / weightedBacking : 0;
+      const peopleSupported = householdsSupported * avgHouseholdSize;
+      const householdCoverage = totalHouseholds > 0 ? (householdsSupported / totalHouseholds) * 100 : 0;
+
+      $('outNationalValuePool').textContent = fmtCurrency(nationalValuePool);
+      $('outAllocatedPool').textContent = fmtCurrency(allocatedPool);
+      $('outWeightedBacking').textContent = fmtCurrency(weightedBacking);
+      $('outWeightedSqFt').textContent = `${fmtNumber(weightedSqFt, 1)} sq ft`;
+      $('outHouseholdsSupported').textContent = fmtNumber(householdsSupported, 0);
+      $('outPeopleSupported').textContent = fmtNumber(peopleSupported, 0);
+      $('outHouseholdCoverage').textContent = fmtPercent(householdCoverage, 1);
+      $('outTotalHouseholds').textContent = fmtNumber(totalHouseholds, 0);
+
+      const tbody = $('nationalScenarioTable');
+      tbody.innerHTML = '';
+
+      tierDefs.forEach((tier, i) => {
+        const tierHouseholds = householdsSupported * normalizedMix[i];
+        const tierPeople = tierHouseholds * avgHouseholdSize;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${tier.name}</td>
+          <td>${fmtPercent(normalizedMix[i] * 100, 1)}</td>
+          <td>${fmtCurrency(tierAnnuals[i])}</td>
+          <td>${fmtNumber(tierHouseholds, 0)}</td>
+          <td>${fmtNumber(tierPeople, 0)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function calculate() {
+      const params = getParams();
+      const householdEnergy = getHouseholdEnergy(params);
+      const result = bauSqFtFromTotalEnergy(householdEnergy, params);
+
+      $('outLifetimeEnergy').textContent = fmtNumber(result.totalEnergy);
+      $('outHousingEnergy').textContent = fmtCurrency(result.housingEnergy);
+      $('outSqFt').textContent = `${fmtNumber(result.totalSqFt, 0)} sq ft`;
+      $('outBuildValue').textContent = fmtCurrency(result.buildValueBacked);
+
+      const memberCount = getHouseholdCount();
+      const averageSqFt = result.totalSqFt / memberCount;
+
+      const interpretation = [
+        `This household contains ${fmtNumber(memberCount)} member(s) with a combined lifetime Energy Credit contribution of ${fmtNumber(result.totalEnergy)}.`,
+        `${params.allocationRate}% of that stream is directed toward housing support, yielding ${fmtCurrency(result.housingEnergy)} of annual housing-backed capacity.`,
+        `Given a build cost of ${fmtCurrency(params.buildCostPerSqFt)} per sq ft, a ${params.lifeOfStructure}-year useful life, and ${params.maintenanceRate}% annual maintenance, the household currently supports about ${fmtNumber(result.totalSqFt, 0)} total sq ft.`,
+        `That averages to roughly ${fmtNumber(averageSqFt, 1)} sq ft per member if divided evenly, though the proportional member allocation table below shows how it could be split according to contributed Energy Credits.`
+      ].join(' ');
+
+      $('interpretation').textContent = interpretation;
+
+      buildMemberSummaryTable(params, householdEnergy);
+      buildTierTable(params);
+      buildMemberAllocationTable(params, householdEnergy);
+      buildMilestones(params);
+      buildNationalScenario(params);
+    }
+
+    $('calcBtn').addEventListener('click', calculate);
+    $('resetBtn').addEventListener('click', setDefaults);
+    $('addMemberBtn').addEventListener('click', addMember);
+    $('regionPreset').addEventListener('change', applyPreset);
+
+    [
+      'energyBirthTo18',
+      'energyAdult',
+      'energyUnitLabel',
+      'currencyPeg',
+      'buildCostPerSqFt',
+      'lifeOfStructure',
+      'maintenanceRate',
+      'allocationRate',
+      'baseGuaranteedSqFt',
+      'nationalPopulation',
+      'averageHouseholdSize',
+      'nationalGenerationMWh',
+      'averageRetailPrice',
+      'bauAllocationPercent',
+      'mixSurvival',
+      'mixStandard',
+      'mixFamily'
+    ].forEach((id) => {
+      $(id).addEventListener('input', calculate);
+    });
+
+    buildMemberInputs();
+    calculate();
+  </script>
+  <script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./service-worker.js");
+    });
+  }
+</script>
+</body>
+</html>
