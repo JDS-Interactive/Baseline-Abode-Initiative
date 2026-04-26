@@ -1,0 +1,70 @@
+
+---
+
+## 📜 `License.txt`
+
+```text
+Baseline Abode Initiative
+Custom Read-Only License
+
+Copyright (c) Jared De Santis.
+All rights reserved.
+
+1. GRANT OF PERMISSION
+
+Permission is granted to any person obtaining a copy of this project to:
+
+- View and study the source code
+- Run the application for personal, educational, or evaluation purposes
+
+This permission is strictly limited to read-only use.
+
+---
+
+2. RESTRICTIONS
+
+Without prior express written permission from Jared De Santis, you may NOT:
+
+- Copy any part of this codebase
+- Modify or alter the code in any way
+- Create derivative works based on this project
+- Redistribute the project, in whole or in part
+- Use the code or concepts in another application, product, or service
+- Publish or host modified or unmodified versions elsewhere
+
+---
+
+3. OWNERSHIP
+
+This project and all associated intellectual property remain the exclusive property of Jared De Santis.
+
+No rights, licenses, or ownership are transferred by use of this project.
+
+---
+
+4. PERMISSION REQUESTS
+
+Any use beyond read-only inspection and execution must be approved in writing.
+
+Contact:
+
+Jared De Santis  
+Email: jedarch@icloud.com
+
+---
+
+5. DISCLAIMER
+
+This project is provided "as is", without warranty of any kind, express or implied, including but not limited to:
+
+- Merchantability
+- Fitness for a particular purpose
+- Non-infringement
+
+In no event shall the author be liable for any claim, damages, or other liability arising from use of this project.
+
+---
+
+6. ACCEPTANCE
+
+By accessing, viewing, or running this project, you acknowledge that you have read, understood, and agree to these terms.
