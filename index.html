@@ -50,19 +50,14 @@
             <p>
               Energy Credits are a normalized unit of productive value. They may be anchored to real energy production,
               such as kWh, but in this model they represent a broader share of economic and infrastructure output used
-              to support housing.
+              to support housing. The proposed allocation is 1,000 EC per participant per year; a currency reference does not change the number of EC issued.
             </p>
           </details>
 
-          <div class="two-col">
-            <div>
-              <label for="energyBirthTo18">Annual contribution age 0–18 (Energy Credits)</label>
-              <input id="energyBirthTo18" type="number" min="0" step="0.01" value="1000" />
-            </div>
-            <div>
-              <label for="energyAdult">Annual contribution age 18+ (Energy Credits)</label>
-              <input id="energyAdult" type="number" min="0" step="0.01" value="1500" />
-            </div>
+          <div>
+            <label for="annualCredits">Annual allocation per participant (EC)</label>
+            <input id="annualCredits" type="number" min="0" step="1" value="1000" />
+            <div class="footer-note">The proposal assigns the same number of credits each year regardless of age or currency. Changing this input explores an alternative scenario.</div>
           </div>
 
           <div class="two-col">
@@ -71,7 +66,7 @@
               <input id="energyUnitLabel" type="text" value="Energy Credits" />
             </div>
             <div>
-              <label for="currencyPeg">Dollar peg per energy unit</label>
+              <label for="currencyPeg">USD reference value per EC (illustrative)</label>
               <input id="currencyPeg" type="number" min="0" step="0.01" value="1" />
             </div>
           </div>
@@ -122,6 +117,7 @@
 
       <div class="panel">
         <h2>Outputs</h2>
+        <p class="footer-note">The BAU calculation is a planning scenario. It treats accumulated EC as an annual backing stream and adds the baseline floor separately. Neither is a funded entitlement without an issuance, redemption, and capacity mechanism.</p>
         <div class="metrics">
           <div class="metric">
             <div class="label">Household Energy Credits</div>
@@ -225,6 +221,27 @@
             These shares are proportional, based on each member's contribution to the household's total energy.
             This is not a legal rule. It is a transparent starting point for discussing fair and understandable household allocation.
           </div>
+        </div>
+
+        <div class="panel" id="housingComparison">
+          <h2>Housing Purchasing Power Comparison</h2>
+          <p class="footer-note">Compare the same annual EC allocation in the U.S. and India using editable assumptions. These are illustrative inputs, not live prices or a claim that EC can currently be redeemed. Material-equivalent area excludes labor, land, fees, infrastructure and upkeep.</p>
+          <div class="four-col">
+            <div><label for="inrPerUsd">Market exchange rate (INR per USD)</label><input id="inrPerUsd" type="number" min="0.01" step="0.01" value="95.8" /></div>
+            <div><label for="usMaterialsCost">U.S. materials (USD / sq ft)</label><input id="usMaterialsCost" type="number" min="0.01" step="0.01" value="100" /></div>
+            <div><label for="indiaMaterialsCost">India materials (INR / sq ft)</label><input id="indiaMaterialsCost" type="number" min="0.01" step="0.01" value="1313" /></div>
+            <div><label for="comparisonAllocation">EC applied to materials (%)</label><input id="comparisonAllocation" type="number" min="0" max="100" step="1" value="100" /></div>
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Same annual allocation</th><th>U.S.</th><th>India</th></tr></thead>
+            <tbody>
+              <tr><td>EC per participant</td><td id="cmpUsEc"></td><td id="cmpIndiaEc"></td></tr>
+              <tr><td>Market currency equivalent</td><td id="cmpUsMoney"></td><td id="cmpIndiaMoney"></td></tr>
+              <tr><td>Materials allocation</td><td id="cmpUsAllocated"></td><td id="cmpIndiaAllocated"></td></tr>
+              <tr><td>Material-equivalent area</td><td id="cmpUsArea"></td><td id="cmpIndiaArea"></td></tr>
+            </tbody>
+          </table></div>
+          <p id="comparisonInterpretation" class="footer-note"></p>
         </div>
 
         <div class="panel">
@@ -344,8 +361,11 @@
 
   <script>
     const defaults = {
-      energyBirthTo18: 1000,
-      energyAdult: 1500,
+      annualCredits: 1000,
+      inrPerUsd: 95.8,
+      usMaterialsCost: 100,
+      indiaMaterialsCost: 1313,
+      comparisonAllocation: 100,
       energyUnitLabel: 'Energy Credits',
       currencyPeg: 1,
       buildCostPerSqFt: 180,
@@ -405,10 +425,8 @@
       return Math.min(Math.max(value, min), max);
     }
 
-    function totalEnergyAtAge(age, childAnnual, adultAnnual) {
-      const childYears = Math.min(Math.max(age, 0), 18);
-      const adultYears = Math.max(age - 18, 0);
-      return (childYears * childAnnual) + (adultYears * adultAnnual);
+    function totalEnergyAtAge(age, annualCredits) {
+      return Math.max(age, 0) * annualCredits;
     }
 
     function annualBurdenPerSqFt(buildCostPerSqFt, lifeOfStructure, maintenanceRatePct) {
@@ -418,7 +436,7 @@
     }
 
     function getMemberEnergy(member, params) {
-      return totalEnergyAtAge(member.age, params.energyBirthTo18, params.energyAdult);
+      return totalEnergyAtAge(member.age, params.annualCredits);
     }
 
     function getHouseholdEnergy(params) {
@@ -553,8 +571,7 @@
 
     function getParams() {
       return {
-        energyBirthTo18: num('energyBirthTo18'),
-        energyAdult: num('energyAdult'),
+        annualCredits: num('annualCredits'),
         currencyPeg: num('currencyPeg'),
         buildCostPerSqFt: num('buildCostPerSqFt'),
         lifeOfStructure: num('lifeOfStructure'),
@@ -655,7 +672,7 @@
       const memberCount = getHouseholdCount();
 
       milestoneAges.forEach((age) => {
-        const totalEnergy = memberCount * totalEnergyAtAge(age, params.energyBirthTo18, params.energyAdult);
+        const totalEnergy = memberCount * totalEnergyAtAge(age, params.annualCredits);
         const row = bauSqFtFromTotalEnergy(totalEnergy, params);
 
         const tr = document.createElement('tr');
@@ -725,6 +742,28 @@
       });
     }
 
+    function buildHousingComparison(params) {
+      const credits = params.annualCredits;
+      const fx = Math.max(num('inrPerUsd'), 0.01);
+      const usCost = Math.max(num('usMaterialsCost'), 0.01);
+      const inCost = Math.max(num('indiaMaterialsCost'), 0.01);
+      const share = clamp(num('comparisonAllocation'), 0, 100) / 100;
+      const usd = credits * params.currencyPeg;
+      const inr = usd * fx;
+      const usArea = usd * share / usCost;
+      const inArea = inr * share / inCost;
+      const housingPppRate = inCost / usCost;
+      const ratio = usArea > 0 ? inArea / usArea : 0;
+      $('cmpUsEc').textContent = $('cmpIndiaEc').textContent = `${fmtNumber(credits)} EC`;
+      $('cmpUsMoney').textContent = fmtCurrency(usd);
+      $('cmpIndiaMoney').textContent = `₹${fmtNumber(inr, 0)}`;
+      $('cmpUsAllocated').textContent = fmtCurrency(usd * share);
+      $('cmpIndiaAllocated').textContent = `₹${fmtNumber(inr * share, 0)}`;
+      $('cmpUsArea').textContent = `${fmtNumber(usArea, 1)} sq ft`;
+      $('cmpIndiaArea').textContent = `${fmtNumber(inArea, 1)} sq ft`;
+      $('comparisonInterpretation').textContent = `At these assumptions, India's material-equivalent area is ${fmtNumber(ratio, 2)}× the U.S. area. The housing-material purchasing-power rate is ₹${fmtNumber(housingPppRate, 2)} per USD of comparable square-foot capacity, versus the entered market rate of ₹${fmtNumber(fx, 2)} per USD. This is a basket-specific comparison, not a change in the market value of the rupee. Equal floor area may not mean identical materials or quality; replace the costs with comparable local bills of materials before drawing policy conclusions.`;
+    }
+
     function calculate() {
       const params = getParams();
       const householdEnergy = getHouseholdEnergy(params);
@@ -740,7 +779,7 @@
 
       const interpretation = [
         `This household contains ${fmtNumber(memberCount)} member(s) with a combined lifetime Energy Credit contribution of ${fmtNumber(result.totalEnergy)}.`,
-        `${params.allocationRate}% of that stream is directed toward housing support, yielding ${fmtCurrency(result.housingEnergy)} of annual housing-backed capacity.`,
+        `In this hypothetical annuity model, ${params.allocationRate}% of accumulated credits is valued at ${fmtCurrency(result.housingEnergy)} per year for housing.`,
         `Given a build cost of ${fmtCurrency(params.buildCostPerSqFt)} per sq ft, a ${params.lifeOfStructure}-year useful life, and ${params.maintenanceRate}% annual maintenance, the household currently supports about ${fmtNumber(result.totalSqFt, 0)} total sq ft.`,
         `That averages to roughly ${fmtNumber(averageSqFt, 1)} sq ft per member if divided evenly, though the proportional member allocation table below shows how it could be split according to contributed Energy Credits.`
       ].join(' ');
@@ -752,6 +791,7 @@
       buildMemberAllocationTable(params, householdEnergy);
       buildMilestones(params);
       buildNationalScenario(params);
+      buildHousingComparison(params);
     }
 
     $('calcBtn').addEventListener('click', calculate);
@@ -760,8 +800,11 @@
     $('regionPreset').addEventListener('change', applyPreset);
 
     [
-      'energyBirthTo18',
-      'energyAdult',
+      'annualCredits',
+      'inrPerUsd',
+      'usMaterialsCost',
+      'indiaMaterialsCost',
+      'comparisonAllocation',
       'energyUnitLabel',
       'currencyPeg',
       'buildCostPerSqFt',

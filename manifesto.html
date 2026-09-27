@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Baseline Abode Initiative Manifesto</title>
   <link rel="stylesheet" href="styles-manifesto.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icons/favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <meta name="description" content="The Baseline Abode Initiative Manifesto: a human-centered, energy-backed framework for dignified shelter, transparent allocation, and interoperable housing security." />
@@ -156,10 +157,10 @@
           <article class="card">
             <h3>How value is expressed</h3>
             <p>
-              Energy Credits are not intended to erase existing currencies. They are a standardized accounting layer that can be correlated to real economic value and optionally pegged or indexed to fiat currencies, including the U.S. dollar.
+              Energy Credits are not intended to erase existing currencies. The proposed allocation is 1,000 Energy Credits (EC) each year for every participating individual, regardless of age or the currency used locally. This is a proposed rule, not an operating benefit. A USD or other currency reference helps estimate purchasing capacity; exchange-rate movements do not change the 1,000 EC issuance.
             </p>
             <p>
-              The purpose is to establish a stable correlation between human life, productive infrastructure, and the housing floor that society can support. A portion of the credits allocated to an individual may be dedicated to housing support. As value accumulates, supported dwelling capacity can increase.
+              The purpose is to connect human life, productive infrastructure, and the housing floor that society can support. An adjustable portion of credits may be dedicated to housing. The real backing, issuance limits, redemption rules, treatment of accumulated balances, and funding of any guaranteed floor still require definition and independent audit; a currency peg alone does not create productive capacity.
             </p>
           </article>
         </div>
@@ -205,7 +206,7 @@
               When countries participate in a common framework, a person may choose to exchange their abode and relocate to another participating country, provided an equivalent dwelling is available and the receiving nation accepts the same core rules.
             </p>
             <p>
-              Currencies may differ in value relative to the U.S. dollar or other reference units. But the housing framework remains interoperable because the common denominator is not merely fiat; it is the energy-backed structure of the allocation system itself.
+              Currencies differ in exchange value, while local materials and construction inputs also differ in price. The same 1,000 EC may therefore represent equal units of proposed allocation but unequal local housing capacity. The calculator shows both market-currency equivalence and material-equivalent square footage, using editable assumptions. Its housing-material purchasing-power rate is the local cost per square foot divided by the U.S. cost per square foot, not a replacement exchange rate. Materials-only area is not a finished dwelling; comparable specifications, labor, land, and infrastructure must be considered before applying the comparison to policy.
             </p>
           </article>
           <article class="card">
@@ -278,6 +279,11 @@
       Baseline Abode Initiative Manifesto - Designed for static hosting and responsive GitHub Pages deployment.
     </div>
   </main>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js'));
+  }
+</script>
 </body>
 </html>
 
